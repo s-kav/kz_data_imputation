@@ -24,6 +24,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+Instruction_add_analysis.md
 
 # Jupyter Notebook
 .ipynb_checkpoints
