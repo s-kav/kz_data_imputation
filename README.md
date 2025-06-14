@@ -59,3 +59,5 @@ Open and execute the cells in Jupyter Notebook `notebooks/analysis.ipynb` to rep
 A comparative analysis on real wind turbine power data showed that the `KZImputer` method is competitive, especially compared to simple methods (mean, ffill). In our test, it showed results close to spline and linear interpolation, which turned out to be the best for this type of smooth time series.
 
 ![RMSE comparison](path/to/your/rmse_plot.png)
+
+[![DOI](https://zenodo.org/badge/1001952407.svg)](https://doi.org/10.5281/zenodo.15663429)
