@@ -1,0 +1,14 @@
+https://www.kaggle.com/berkerisen/wind-turbine-scada-dataset/data - 133415_317642_compressed_T1.csv
+
+https://openei.org/datasets/dataset/miller-keith-2018-windplantdata - millerkeith2018data1, data2
+
+https://openei.org/datasets/dataset/eu-energy-statistics-2010-1990-2007 - extrenewablesgrosselectricitygeneration, part2energypocketbook2010
+
+https://setis.ec.europa.eu/EMHIRES-datasets - EMHIRES_WIND_COUNTRY_June2019, TS_CF_OFFSHORE_30yr_date, 
+https://data.jrc.ec.europa.eu/licence/com_reuse
+
+https://eerscmap.usgs.gov/uswtdb/data/ - uswtdbCSV
+
+https://energydata.info/dataset/world-global-tracking-framework-2017 - gtfenergyaccessdata, gtfprimaryenergyintensitydata, gtfrenewableenergydata
+
+https://github.com/gaz22/datathon-melbourne-2020 - examples of reports based on Electricity Consumption in Victoria during Covid-19 Pandemic

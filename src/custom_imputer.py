@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
+pd.set_option('future.no_silent_downcasting', True)
+
 class KZImputer(BaseEstimator, TransformerMixin):
     """
     Implements the multiple gap imputation method for time series,
@@ -59,12 +61,12 @@ class KZImputer(BaseEstimator, TransformerMixin):
         
         # start with the largest gaps and move to the smaller ones.
         for gap_size in range(self.max_gap_size, 0, -1):
-            nan_blocks = self._find_nan_blocks(s, gap_size)
+            nan_block_positions = self._find_nan_blocks(s, gap_size)
             
-            for start_idx in nan_blocks:
+            for start_pos in nan_block_positions:
                 # determine the position of the gap: 'left', 'middle', 'right'
-                is_left_edge = (start_idx == 0)
-                is_right_edge = (start_idx + gap_size == len(s))
+                is_left_edge = (start_pos == 0)
+                is_right_edge = (start_pos + gap_size == len(s))
                 
                 if is_left_edge:
                     position = 'left'
@@ -76,7 +78,7 @@ class KZImputer(BaseEstimator, TransformerMixin):
                 # call the corresponding handler
                 imputer_func = getattr(self, f'_impute_{gap_size}_gap', None)
                 if imputer_func:
-                    s = imputer_func(s, start_idx, position)
+                    s = imputer_func(s, start_pos, position)
 
         return s
 
@@ -87,23 +89,23 @@ class KZImputer(BaseEstimator, TransformerMixin):
         # `(is_nan.rolling(gap_size).sum() == gap_size)` finds the end of a block
         # `(is_nan.shift(1).fillna(False) == False)` checks that there was no NaN before the block
         # `(is_nan.shift(-gap_size).fillna(False) == False)` checks that there was no NaN after the block
-        
+        is_nan_np = is_nan.to_numpy()
         # Simplified logic to find all blocks of the required size
-        potential_starts = is_nan.rolling(gap_size).sum() == gap_size
-        starts = potential_starts & ~potential_starts.shift(1).fillna(False)
-        
-        # Filter to ensure the size is accurate
-        indices = starts[starts].index
+        rolling_sum = np.convolve(is_nan_np, np.ones(gap_size, dtype=int), 'valid')
+        potential_starts = np.where(rolling_sum == gap_size)[0]
         
         exact_size_indices = []
-        for idx in indices:
+        series_len = len(series)
+        for start_pos in potential_starts:
             # Check that the element following the block is not NaN (if it exists)
-            if idx + gap_size < len(series):
-                if not pd.isna(series.iloc[idx + gap_size]):
-                    exact_size_indices.append(idx)
+            is_start_of_series = (start_pos == 0)
+            preceded_by_nan = False if is_start_of_series else is_nan_np[start_pos - 1]
             # If the block is at the very end, it is also suitable
-            elif idx + gap_size == len(series):
-                exact_size_indices.append(idx)
+            is_end_of_series = (start_pos + gap_size == series_len)
+            followed_by_nan = False if is_end_of_series else is_nan_np[start_pos + gap_size]
+            
+            if not preceded_by_nan and not followed_by_nan:
+                exact_size_indices.append(start_pos)
         
         return exact_size_indices
 
