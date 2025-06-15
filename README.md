@@ -84,7 +84,7 @@ A comparative analysis on real wind turbine power data showed that the `KZImpute
 ![](results/results_v07.png)
 
 ### Table comparison of 8 different methods with ranking
-![](results/results_v08.PNG)
+![](results/results_v09.png)
 
 
 [![DOI](https://zenodo.org/badge/1001952407.svg)](https://doi.org/10.5281/zenodo.15663429)
