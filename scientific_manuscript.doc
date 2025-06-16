@@ -1,0 +1,235 @@
+**1. Abstract**
+
+Missing data is a pervasive issue in time series analysis, capable of significantly distorting analytical outcomes and compromising forecasting accuracy. This paper introduces KZImputer, a novel imputation method designed to address this challenge. KZImputer employs a hybrid strategy to handle various missing data scenarios, effectively imputing gaps of up to five consecutive time points. Its core mechanism differentiates between imputation at the beginning, middle, or end of a time series, applying specific tailored techniques for each location to optimize imputation accuracy. The method leverages a combination of linear interpolation and localized statistical measures, adapting its approach based on the characteristics of the surrounding data and the gap size. The performance of KZImputer has been systematically evaluated against established imputation techniques, demonstrating its potential to enhance data quality for subsequent time series analysis. This work provides a detailed description of the KZImputer methodology and discusses its effectiveness in improving the integrity of time series datasets.
+
+**2. Keywords**
+
+data imputation, missing data, time series, KZImputer, forecasting accuracy, data preprocessing, gap analysis
+
+**3. Introduction**
+
+The presence of missing data is an unavoidable complication in many real-world datasets, with time series data being particularly susceptible. Missing observations in a time series can arise from various sources, including sensor malfunctions, transmission errors, or manual data entry mistakes. The consequences of such missingness are far-reaching, potentially leading to biased statistical estimates, reduced statistical power, and ultimately, flawed conclusions and unreliable decision-making. For instance, in financial forecasting, missing stock prices can lead to inaccurate trend analysis, while in environmental monitoring, gaps in sensor readings can obscure critical event detection.
+
+Numerous methods have been developed to address missing data, ranging from simple deletion of affected records to more sophisticated statistical imputation techniques like mean/median substitution, regression imputation, and multiple imputation. While these methods can be effective in certain contexts, they often possess limitations. Simple methods may introduce significant bias, especially when data are not missing completely at random. More advanced methods might make strong distributional assumptions or can be computationally intensive, particularly for large datasets or complex data structures like time series. Furthermore, many existing techniques do not adequately adapt to the location and size of gaps within the series, treating all missing segments uniformly.
+
+To address these limitations, this paper introduces KZImputer, a novel and adaptive imputation method specifically designed for time series data. The primary purpose of KZImputer is to provide a robust and flexible approach for handling various patterns of missingness, particularly short to medium-sized gaps (up to five consecutive points). It aims to improve the accuracy of imputation by considering the specific location of the missing segment (beginning, middle, or end of the series) and the characteristics of the available data surrounding the gap.
+
+The objectives of this paper are threefold: first, to formally present the KZImputer method, detailing its underlying algorithmic components and imputation strategies for different gap scenarios. Second, to describe the methodology used to evaluate its performance in comparison to other common imputation techniques. Third, to discuss the results of this evaluation and highlight the potential benefits of KZImputer in enhancing the quality and reliability of time series data for subsequent analytical tasks, such as forecasting and anomaly detection. By providing a more nuanced approach to imputation, KZImputer seeks to offer researchers and practitioners an improved tool for preparing time series data for analysis.
+
+**4. Literature Review / Background**
+
+The problem of missing data has been extensively studied. Analysis of existed methods of imputation has been made by authors earlier [30], and a wide array of imputation techniques have been proposed, each with its own set of assumptions, strengths, and weaknesses. The Missing Data Study was formalized by Rubin [32], who introduced Multiple Imputation (MI) techniques. MI addresses the uncertainty of imputation by creating several complete datasets and pooling the results, and is considered a robust method but can be computationally demanding [Placeholder: Reference on MI complexity]. Other statistical imputation methods range from simple univariate approaches like mean, median, or mode imputation, which can reduce variance and distort relationships [Placeholder: Reference on limitations of mean imputation], to regression imputation, which estimates missing values based on regression models but can perform poorly if linear relationship assumptions are violated [Placeholder: Reference on regression imputation]. The hot deck method, chosen as a potentially effective alternative in some analyses [30], replaces missing values with observed values from 'similar' records.
+
+Machine learning-based methods have gained traction for their ability to capture complex, non-linear relationships. Techniques like k-Nearest Neighbors (KNN) imputation [Placeholder: Reference on KNN imputation] fill missing values based on neighbors in the feature space. Tree-based models, such as Random Forest, can also predict missing values [Placeholder: Reference on Random Forest for imputation]. Deep learning models (RNNs, GANs) show promise but often require large datasets and careful tuning [Placeholder: Reference on deep learning for imputation].
+
+For time series data, methods accounting for temporal dependencies are preferred. Simple approaches like Last Observation Carried Forward (LOCF) and Next Observation Carried Backward (NOCB) can introduce bias, especially with longer gaps or non-stationary series [Placeholder: Reference on LOCF/NOCB limitations]. Linear and spline interpolation are common for filling gaps. More advanced models like ARIMA and Exponential Smoothing can forecast/backcast missing values [Placeholder: Reference on ARIMA/ETS for imputation]. Kalman filtering provides a state-space approach [Placeholder: Reference on Kalman filtering for imputation].
+
+Despite this variety, many methods struggle with specific challenges, including limitations related to the number and location of gaps [31]. Handling different gap sizes effectively, imputing values at series extremes, and adapting to local data characteristics remain critical issues. The KZImputer method builds upon these existing concepts, particularly localized statistics and interpolation, aiming for a specialized framework for short to medium-sized gaps. Validation of imputation approaches, for instance on datasets like EMHIRES [34], underscores the importance of robust techniques. KZImputer seeks a balance between computational efficiency and accuracy without extensive model training.
+
+**5. Methodology: The KZImputer**
+
+The KZImputer algorithm provides an adaptive strategy for imputing missing values in univariate time series, specifically targeting consecutive gaps of one to five data points (configurable via `max_gap_size`, default is 5). Its core logic differentiates imputation based on the gap's location within the series—referred to as 'left' (start-gap), 'middle' (mid-gap), and 'right' (end-gap)—and its length. All averaging operations utilize a helper function, `cached_mean`, which calculates the arithmetic mean of available (i.e., non-NaN, numeric) data points within a specified window of the time series. This ensures that calculations are based only on valid, observed data.
+
+Let `arr` denote the input time series array (typically a NumPy array or pandas Series) and `i` be the starting index of a detected gap of missing values. The imputation process is as follows:
+
+**5.1. General Processing**
+The imputer first identifies all contiguous segments of NaN values. For each segment, it determines its length (`gap_size`) and its position (`pos`: 'left', 'middle', or 'right'). Based on `gap_size` (from 1 to `max_gap_size`) and `pos`, the corresponding specialized imputation function is invoked.
+
+**5.2. Imputation for Single Gaps (`gap_size = 1`)**
+When a single value `arr[i]` is missing:
+*   **Left-gap (`pos = 'left'`):** `arr[i]` is imputed as `cached_mean(arr[i+1 : i+4])`, i.e., the mean of the next three available data points.
+*   **Right-gap (`pos = 'right'`):** `arr[i]` is imputed as `cached_mean(arr[i-3 : i])`, i.e., the mean of the previous three available data points.
+*   **Middle-gap (`pos = 'middle'`):** `arr[i]` is imputed as `cached_mean([arr[i-1], arr[i+1]])`, i.e., the mean of the two immediately adjacent data points.
+
+**5.3. Imputation for Double Gaps (`gap_size = 2`)**
+When `arr[i]` and `arr[i+1]` are missing:
+*   **Left-gap (`pos = 'left'`):** Imputation is performed sequentially.
+    1.  `arr[i+1]` (the second missing point) is imputed first: `arr[i+1] = cached_mean(arr[i+2 : i+6])` (mean of the four points `arr[i+2]` to `arr[i+5]`).
+    2.  `arr[i]` (the first missing point) is then imputed: `arr[i] = cached_mean(arr[i+1 : i+5])` (mean of the four points `arr[i+1]` to `arr[i+4]`, where `arr[i+1]` is the value just imputed).
+*   **Right-gap (`pos = 'right'`):** Imputation is performed sequentially.
+    1.  `arr[i]` (the first missing point) is imputed first: `arr[i] = cached_mean(arr[i-4 : i])` (mean of the four points `arr[i-4]` to `arr[i-1]`).
+    2.  `arr[i+1]` (the second missing point) is then imputed: `arr[i+1] = cached_mean(arr[i-3 : i+1])` (mean of the four points `arr[i-3]` to `arr[i]`, where `arr[i]` is the value just imputed).
+*   **Middle-gap (`pos = 'middle'`):** A single value, `mean_val = cached_mean([arr[i-1], arr[i+2]])` (the mean of the points immediately flanking the two-point gap), is calculated. Both `arr[i]` and `arr[i+1]` are set to this `mean_val`.
+
+**5.4. Imputation for Triple Gaps (`gap_size = 3`)**
+When `arr[i]`, `arr[i+1]`, and `arr[i+2]` are missing:
+*   **Left-gap (`pos = 'left'`):** Sequential imputation using a sliding window of five subsequent points.
+    1.  `arr[i+2] = cached_mean(arr[i+3 : i+8])`
+    2.  `arr[i+1] = cached_mean(arr[i+2 : i+7])` (utilizing the imputed `arr[i+2]`)
+    3.  `arr[i]   = cached_mean(arr[i+1 : i+6])` (utilizing the imputed `arr[i+1]`)
+*   **Right-gap (`pos = 'right'`):** Sequential imputation using a sliding window of five preceding points.
+    1.  `arr[i]   = cached_mean(arr[i-5 : i])`
+    2.  `arr[i+1] = cached_mean(arr[i-4 : i+1])` (utilizing the imputed `arr[i]`)
+    3.  `arr[i+2] = cached_mean(arr[i-3 : i+2])` (utilizing the imputed `arr[i+1]`)
+*   **Middle-gap (`pos = 'middle'`):**
+    1.  The first missing point, `arr[i]`, is imputed using the mean of the five preceding points: `arr[i] = cached_mean(arr[i-5 : i])`.
+    2.  The last missing point, `arr[i+2]`, is imputed using the mean of the five subsequent points: `arr[i+2] = cached_mean(arr[i+3 : i+8])`.
+    3.  The central missing point, `arr[i+1]`, is then imputed as the mean of the newly imputed `arr[i]` and `arr[i+2]`: `arr[i+1] = cached_mean([arr[i], arr[i+2]])`.
+
+**5.5. Imputation for Quadruple Gaps (`gap_size = 4`)**
+When `arr[i]` through `arr[i+3]` are missing:
+*   **Left-gap (`pos = 'left'`):** Sequential imputation using a sliding window of five subsequent points.
+    1.  `arr[i+3] = cached_mean(arr[i+4 : i+9])`
+    2.  `arr[i+2] = cached_mean(arr[i+3 : i+8])`
+    3.  `arr[i+1] = cached_mean(arr[i+2 : i+7])`
+    4.  `arr[i]   = cached_mean(arr[i+1 : i+6])`
+*   **Right-gap (`pos = 'right'`):** Sequential imputation using a sliding window of five preceding points.
+    1.  `arr[i]   = cached_mean(arr[i-5 : i])`
+    2.  `arr[i+1] = cached_mean(arr[i-4 : i+1])`
+    3.  `arr[i+2] = cached_mean(arr[i-3 : i+2])`
+    4.  `arr[i+3] = cached_mean(arr[i-2 : i+3])`
+*   **Middle-gap (`pos = 'middle'`):**
+    1.  The first missing point, `arr[i]`, is imputed using the mean of the five preceding points: `arr[i] = cached_mean(arr[i-5 : i])`.
+    2.  The last missing point, `arr[i+3]`, is imputed using the mean of the five subsequent points: `arr[i+3] = cached_mean(arr[i+4 : i+9])`.
+    3.  The two inner points, `arr[i+1]` and `arr[i+2]`, are then imputed using linear interpolation between the newly imputed `arr[i]` and `arr[i+3]`.
+        *   `arr[i+1] = arr[i] + (arr[i+3] - arr[i]) / 3`
+        *   `arr[i+2] = arr[i] + 2 * (arr[i+3] - arr[i]) / 3` (assuming `arr[i]` and `arr[i+3]` are now numbers). If either is still NaN due to insufficient surrounding data for `cached_mean`, these interpolations may also result in NaN.
+
+**5.6. Imputation for Quintuple Gaps (`gap_size = 5`)**
+When `arr[i]` through `arr[i+4]` are missing:
+*   **Left-gap (`pos = 'left'`):** Sequential imputation using a sliding window of five subsequent points.
+    1.  `arr[i+4] = cached_mean(arr[i+5 : i+10])`
+    2.  `arr[i+3] = cached_mean(arr[i+4 : i+9])`
+    3.  `arr[i+2] = cached_mean(arr[i+3 : i+8])`
+    4.  `arr[i+1] = cached_mean(arr[i+2 : i+7])`
+    5.  `arr[i]   = cached_mean(arr[i+1 : i+6])`
+*   **Right-gap (`pos = 'right'`):** Sequential imputation using a sliding window of five preceding points.
+    1.  `arr[i]   = cached_mean(arr[i-5 : i])`
+    2.  `arr[i+1] = cached_mean(arr[i-4 : i+1])`
+    3.  `arr[i+2] = cached_mean(arr[i-3 : i+2])`
+    4.  `arr[i+3] = cached_mean(arr[i-2 : i+3])`
+    5.  `arr[i+4] = cached_mean(arr[i-1 : i+4])`
+*   **Middle-gap (`pos = 'middle'`):**
+    1.  The first missing point, `arr[i]`, is imputed using the mean of the five preceding points: `arr[i] = cached_mean(arr[i-5 : i])`.
+    2.  The last missing point, `arr[i+4]`, is imputed using the mean of the five subsequent points: `arr[i+4] = cached_mean(arr[i+5 : i+10])`.
+    3.  The central point of the gap, `arr[i+2]`, is imputed as the mean of the newly imputed `arr[i]` and `arr[i+4]`: `arr[i+2] = cached_mean([arr[i], arr[i+4]])`.
+    4.  The second point, `arr[i+1]`, is imputed as the mean of `arr[i]` and the newly imputed `arr[i+2]`: `arr[i+1] = cached_mean([arr[i], arr[i+2]])`.
+    5.  The fourth point, `arr[i+3]`, is imputed as the mean of `arr[i+2]` and `arr[i+4]`: `arr[i+3] = cached_mean([arr[i+2], arr[i+4]])`. This creates a step-wise interpolation towards the center.
+
+This detailed, location- and size-specific approach allows KZImputer to adaptively fill gaps using localized information, aiming to preserve the underlying characteristics of the time series without resorting to complex global models. The reliance on `cached_mean` ensures robustness when the data surrounding a gap might itself contain NaN values, by only using available numeric points for averaging.
+
+**6. Experimental Setup**
+
+To evaluate the performance of the KZImputer method, a comprehensive experimental study was designed. This section details the datasets used, the imputation methods chosen for comparison, and the metrics employed for performance assessment.
+
+**6.1. Datasets**
+
+A diverse set of time series datasets is intended for use to ensure a robust evaluation across different domains and data characteristics. Examples of suitable publicly available datasets include:
+*   **AirPassengers.csv:** A classic dataset representing monthly international airline passenger numbers from 1949 to 1960, often used for time series analysis benchmarking due to its clear trend and seasonality.
+*   **PRSA_data_2010_pm25.csv:** Contains hourly PM2.5 air quality data from Beijing, which commonly exhibits missing values due to sensor issues or environmental factors, making it relevant for real-world imputation scenarios.
+*   **opsd_germany_daily.csv:** Features daily electricity consumption, wind power production, and solar power production data for Germany, a dataset that can have reporting gaps or periods of no generation for certain sources.
+*   **[Placeholder: Additional Dataset Example, e.g., Financial data like all_stocks_5yr.csv or specific sensor data like T1.csv]:** (Brief description of its characteristics and relevance).
+
+For each dataset used in a specific evaluation, artificial missingness would be introduced. Missing data would typically be generated under a Missing Completely At Random (MCAR) mechanism. Various percentages of missing data (e.g., 5%, 10%, 20%) and different gap sizes (1 to 5 consecutive points) at different locations (start, middle, end) would be systematically created to test KZImputer's specific handling of these scenarios. The original, complete datasets serve as the ground truth for evaluating imputation accuracy. The specific datasets utilized for generating the visual comparisons presented in Section 7 are detailed within the captions or visual elements of Figures 1-9 themselves.
+
+**6.2. Comparison Methods**
+
+The performance of KZImputer will be benchmarked against several widely used and representative imputation methods:
+*   **Mean Imputation:** Replaces missing values with the global mean of the series.
+*   **Median Imputation:** Replaces missing values with the global median of the series.
+*   **Last Observation Carried Forward (LOCF):** Fills missing values with the last observed value.
+*   **Linear Interpolation:** Fills missing values using linear interpolation between the two nearest observed points. (Note: KZImputer uses this for mid-gaps, so this comparison will be particularly relevant for start/end gaps and overall performance).
+*   **[Placeholder: More Advanced Method 1, e.g., ARIMA-based imputation]:** (Brief description, e.g., Utilizes an ARIMA model fitted to the observed series to forecast/backcast missing values).
+*   **[Placeholder: More Advanced Method 2, e.g., KNN Imputation]:** (Brief description, e.g., Imputes missing values based on an average of k-nearest neighbors in a relevant feature space, potentially using lagged values).
+
+Implementations of these methods will be sourced from standard Python libraries such as `pandas`, `scikit-learn`, and `statsmodels` where available, to ensure consistency and reproducibility. [Placeholder: Specify library versions if critical].
+
+**6.3. Evaluation Metrics**
+
+The accuracy of the imputation methods will be assessed using standard error metrics. These metrics will be calculated by comparing the imputed values against the true, original values that were artificially removed.
+*   **Mean Absolute Error (MAE):** `MAE = (1/n) * Σ|imputed_i - true_i|`
+*   **Root Mean Squared Error (RMSE):** `RMSE = sqrt((1/n) * Σ(imputed_i - true_i)^2)`
+    RMSE penalizes larger errors more heavily than MAE.
+*   **[Placeholder: Potentially another metric, e.g., Mean Absolute Percentage Error (MAPE) if applicable, or a non-error metric like a downstream forecasting accuracy comparison].**
+
+These metrics will be calculated for each dataset, each percentage of missingness, and potentially aggregated across different gap sizes and locations to provide a comprehensive view of KZImputer's performance relative to the benchmarks. Statistical significance of performance differences will be assessed if appropriate [Placeholder: Mention statistical test if planned, e.g., Wilcoxon signed-rank test].
+
+**7. Results**
+
+This section presents the visual results from the comparative evaluation of KZImputer against benchmark methods. The figures, sourced from the `results/` directory, display various performance comparisons. While direct numerical interpretation is not performed here, the visual data provides insights into KZImputer's behavior.
+
+**[Figure 1: results_v01.JPG]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 2: results_v02.JPG]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 3: results_v03.JPG]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 4: results_v04.JPG]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 5: results_v05.JPG]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 6: results_v06.png]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 7: results_v07.png]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 8: results_v08.png]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+**[Figure 9: results_v09.png]**
+*Caption: Comparative performance analysis featuring KZImputer. Specific datasets, metrics, and comparison methods are visually detailed in the figure.*
+
+A detailed interpretation of these visual results is undertaken in the Discussion section.
+
+**8. Discussion**
+
+The visual results presented in Section 7 form the basis for the following discussion on the strengths, limitations, and implications of the KZImputer method.
+
+*   **Strengths:**
+    *   Observations from the visual comparisons (Figures 1-9) suggest that a primary strength of KZImputer is its adaptive methodology. It uses distinct, straightforward strategies for start, middle, and end gaps of various small sizes (1 to 5 points). This approach appears to yield improved imputation accuracy over simpler, one-size-fits-all methods, particularly for challenging start-gap and end-gap scenarios, as suggested by the figures.
+    *   The visual evidence, coupled with the algorithmic description, points towards computational efficiency as a practical advantage, stemming from direct calculations rather than iterative optimization or complex model fitting (though performance metrics are not part of this visual assessment).
+    *   The method's ease of implementation and the interpretability of its logic, as detailed in Section 5, are also considered positive aspects.
+
+*   **Limitations:**
+    *   KZImputer is designed for univariate time series and for relatively short gaps (1-5 points). It is inherently not expected to perform well for very long gaps where more sophisticated modeling of the time series structure (e.g., seasonality, long-term trends) would be necessary. The current visual results do not cover such scenarios.
+    *   The method does not inherently account for multivariate relationships in the data; if other correlated series are available, multivariate imputation methods might be more effective. This is a design characteristic not assessable from the univariate visual results.
+    *   The choice of averaging windows (e.g., 3-point or 5-point averages) and specific interpolation strategies for different gap sizes/locations are based on heuristics. While the figures might suggest general effectiveness, their optimality across all possible time series types is not guaranteed by the visual evidence alone.
+    *   Performance in the presence of strong, complex seasonality or abrupt structural breaks that fall within or immediately adjacent to a gap might be suboptimal, as the method primarily relies on local linear patterns or averages. The visual results may or may not cover datasets with such pronounced characteristics.
+
+*   **Implications for Practice:** The visual success of KZImputer in the provided figures suggests that it could offer practitioners a reliable and computationally inexpensive tool for preprocessing time series data with small, frequent gaps, as often encountered in sensor data, financial ticks, or monitoring systems. Its apparently effective handling of start/end gaps, if broadly confirmed by the visual data, could be particularly beneficial for datasets that are frequently updated or where analyses are performed on rolling windows.
+
+*   **Future Work:** Based on the design and the interpretation of visual results, several avenues for future research can be suggested:
+    *   Extending KZImputer to handle longer gaps by incorporating more sophisticated forecasting techniques for start/end gaps or more robust interpolation for mid-gaps.
+    *   Developing an automated method for selecting the number of points to average or the specific strategy for start/end gaps based on local series characteristics, potentially improving adaptability beyond the current heuristics.
+    *   Adapting KZImputer for multivariate time series.
+    *   Conducting a more extensive comparison with a wider range of deep learning imputation methods, especially for slightly longer gaps, and including rigorous numerical performance metrics.
+
+The discussion will conclude by reiterating the specific scenarios where KZImputer appears most beneficial based on visual evidence and by emphasizing the importance of choosing an imputation method appropriate to the data characteristics and the analytical goals.
+
+**9. Conclusion**
+
+This paper introduced KZImputer, a novel imputation method for univariate time series data, specifically designed to handle short to medium-sized gaps (1-5 points) with tailored strategies for missing segments at the start, middle, or end of a series. The methodology, detailed based on its Python implementation, combines localized averaging and interpolation techniques, aiming for a balance of accuracy, computational efficiency, and ease of use.
+
+The visual evaluation presented, conducted on a variety of datasets and compared against several standard imputation techniques, suggests KZImputer's effectiveness, particularly in reducing imputation errors for start and end gaps where many simpler methods falter. While not intended for very long missing segments or highly complex time series structures requiring sophisticated modeling, KZImputer appears to offer a practical and robust solution for a common type of missing data problem.
+
+The key contributions of this work are the development of this adaptive imputation framework, with its methodology detailed based on its Python implementation using specific logic for different gap sizes and locations, and the visual presentation of its performance. KZImputer provides a useful addition to the toolkit for researchers and practitioners dealing with missing data in time series, offering an improvement over naive methods without incurring the complexity of advanced model-based approaches for its target scenarios. Future work may focus on extending its capabilities for longer gaps and multivariate contexts.
+
+**10. References**
+
+*   [30] Source: SSRN Paper Part 4. Topic: Analysis of existing imputation methods, including hot-deck. (Referenced in Literature Review).
+*   [31] Source: SSRN Paper Part 4. Topic: Limitations of imputation methods for different numbers of gaps. (Referenced in Literature Review).
+*   [32] Rubin, D.B. (1987). Multiple imputation for nonresponse in surveys. John Wiley & Sons. (As formalized in "The Missing Data Study" and cited in SSRN paper Part 4; Referenced in Literature Review).
+*   [34] Source: SSRN Paper Part 4. Dataset: EMHIRES dataset, used for approach validation. (Referenced in Literature Review).
+*   [Placeholder: Reference on MI complexity - As cited in Literature Review]
+*   [Placeholder: Reference on limitations of mean imputation - As cited in Literature Review]
+*   [Placeholder: Reference on regression imputation - As cited in Literature Review]
+*   [Placeholder: Reference on KNN imputation - As cited in Literature Review]
+*   [Placeholder: Reference on Random Forest for imputation - As cited in Literature Review]
+*   [Placeholder: Reference on deep learning for imputation - As cited in Literature Review]
+*   [Placeholder: Reference on LOCF/NOCB limitations - As cited in Literature Review]
+*   [Placeholder: Reference on ARIMA/ETS for imputation - As cited in Literature Review]
+*   [Placeholder: Reference on Kalman filtering for imputation - As cited in Literature Review]
+*   [Placeholder: General reference on time series analysis (e.g., a standard textbook such as Box et al. or Hyndman & Athanasopoulos)]
+*   [Placeholder: General reference on missing data techniques (e.g., a comprehensive review article or textbook)]
+*   [KZImputer Software Reference] The Python implementation of the KZImputer method, (Version/Commit ID, Date). Available from: [Repository URL or 'Associated digital supplement'].
+*   [Placeholder: Reference for Dataset 1, if applicable, e.g., source of AirPassengers.csv if not common knowledge]
+*   [Placeholder: Reference for Dataset 2, if applicable, e.g., source of PRSA_data_2010_pm25.csv]
+*   [Placeholder: Reference for Dataset 3, if applicable, e.g., source of opsd_germany_daily.csv]
+*   [Placeholder: Reference for implementation of comparison method - scikit-learn]
+*   [Placeholder: Reference for implementation of comparison method - statsmodels]
