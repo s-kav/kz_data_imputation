@@ -1,7 +1,7 @@
 ```
-wind-data-imputation/
+kz-data-imputation/
 ├── data/
-│   └── .gitkeep             # CSV files
+│   └── .gitkeep             # CSV files of researched datasets
 ├── notebooks/
 │   └── analysis.ipynb       # Jupyter Notebooks for analysis and visualization
 ├── results/
@@ -12,13 +12,13 @@ wind-data-imputation/
 ├── src_old/
 │   └── *.py                 # old implementations of the proposed method
 ├── .gitignore               # standard gitignore for Python
-├── README.md                # project rescription
+├── README.md                # project description
 └── requirements.txt         # project requirements
 ```
 
 # Multiple Data-Driven Missing Imputation
 
-This project is a Python implementation and benchmarking of the missing data imputation method described in the scientific paper "Multiple Data-Driven Missing Imputation" by Sergii Kavun and Alina Zamula.
+This project is a Python implementation and benchmarking of the missing data imputation method described in the scientific paper "Multiple Data-Driven Missing Imputation" by Sergii Kavun [and Alina Zamula].
 
 The implementation is implemented as a scikit-learn-compatible class, which makes it easy to use in machine learning pipelines.
 
