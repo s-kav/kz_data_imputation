@@ -72,7 +72,7 @@ A comparative analysis on real wind turbine power data showed that the `KZImpute
 ![](results/results_v03.png)
 
 ### Behaviour `KZImputer` at the different size of gaps
-![](results/results_v04.JPG)
+![](results/results_v04.jpg)
 
 ### Visual comparison of 8 different imputting methods by all metrics
 ![](results/Figure_27sm.png)
