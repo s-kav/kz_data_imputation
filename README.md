@@ -66,7 +66,7 @@ A comparative analysis on real wind turbine power data showed that the `KZImpute
 ![](results/results_v01.JPG)
 
 ### Table comparison with 8 different methods (after `KZImputer` optimization)
-![](results/results_v02.JPG)
+![](results/Figure_11.JPG)
 
 ### Methods comparison by 8 different metrics
 ![](results/results_v03.png)
@@ -75,13 +75,13 @@ A comparative analysis on real wind turbine power data showed that the `KZImpute
 ![](results/results_v04.JPG)
 
 ### Visual comparison of 8 different imputting methods by all metrics
-![](results/results_v05.png)
+![](results/Figure_27sm.png)
 
 ### Methods comparison by 8 different metrics (other visualization)
-![](results/results_v06.png)
+![](results/Figure_20sm.png)
 
 ### Heatmap of imputation methods performance
-![](results/results_v07.png)
+![](results/Figure_9sm.png)
 
 ### Table comparison of 8 different methods with ranking
 ![](results/results_v09.png)
