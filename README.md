@@ -86,5 +86,7 @@ A comparative analysis on real wind turbine power data showed that the `KZImpute
 ### Table comparison of 8 different methods with ranking
 ![](results/results_v09.png)
 
-
+# Reference
+Sergii Kavun. (2025). s-kav/kz_data_imputation: KZImputer: v.1.0 (v.1.0). Zenodo. https://doi.org/10.5281/zenodo.15663429
+    
 [![DOI](https://zenodo.org/badge/1001952407.svg)](https://doi.org/10.5281/zenodo.15663429)
