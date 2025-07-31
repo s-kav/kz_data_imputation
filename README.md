@@ -86,7 +86,34 @@ A comparative analysis on real wind turbine power data showed that the `KZImpute
 ### Table comparison of 8 different methods with ranking
 ![](results/results_v09.png)
 
-# Reference
+# Reference    
+
+For citing you should use:
+
 Sergii Kavun. (2025). s-kav/kz_data_imputation: KZImputer: v.1.0 (v.1.0). Zenodo. https://doi.org/10.5281/zenodo.15663429
-    
+
+[![arXiv](https://img.shields.io/badge/arXiv-2507.03061-b31b1b.svg)](https://arxiv.org/abs/2507.03061)
+[![cs.LG](https://img.shields.io/badge/stat.ML-Machine%20Learning-blue)](https://arxiv.org/list/stat.ML/recent)
 [![DOI](https://zenodo.org/badge/1001952407.svg)](https://doi.org/10.5281/zenodo.15663429)
+
+**Multiple data-driven missing imputation: KZImputer - adaptive method for univariate time series**  
+*Sergii Kavun*  
+arXiv preprint arXiv:2507.03061, 2025  
+[📄 Paper](https://arxiv.org/abs/2507.03061)
+
+**BibTeX formatted citation**
+<details>
+<summary>📋 Click to expand BibTeX citation</summary>
+<br>
+
+```bibtex
+@misc{https://doi.org/10.5281/zenodo.15663429,
+  doi = {10.5281/ZENODO.15663429},  
+  url = {https://zenodo.org/doi/10.5281/zenodo.15663429},  
+  author = {Sergii Kavun},  
+  title = {s-kav/kz_data_imputation: KZImputer},  
+  publisher = {Zenodo},  
+  year = {2025},  
+  copyright = {Creative Commons Attribution 4.0 International}
+}
+```
