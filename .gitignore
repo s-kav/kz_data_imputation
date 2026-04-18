@@ -41,3 +41,5 @@ venv.bak/
 # Kaggle
 .kaggle/
 kaggle.json
+# Added by code-review-graph
+.code-review-graph/
